@@ -21,8 +21,6 @@ export class GatewayMiddleware implements NestMiddleware {
     const pathname = req.originalUrl?.split('?')[0] || req.url || '/';
 
     try {
-      console.log('host', host);
-      console.log('pathname', pathname);
       const app = await this.gatewayService.resolveApp(host, pathname);
       if (!app) {
         return next();

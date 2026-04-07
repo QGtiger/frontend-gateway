@@ -75,7 +75,15 @@ export class GatewayService {
   /**
    * 拉取 ossIndexUrl 对应 HTML，并在 </head> 前注入 `window.__ROUTER_APP_CONFIG__`（来自 app.config）。
    */
-  async buildHtmlResponse(app: RouterAppEntry): Promise<string> {
+  async buildHtmlResponse(
+    app: RouterAppEntry & {
+      html?: string;
+    },
+  ): Promise<string> {
+    if (app.html) {
+      this.logger.log('命中缓存');
+      return app.html;
+    }
     const res = await fetch(app.ossIndexUrl, {
       redirect: 'follow',
       headers: { Accept: 'text/html,application/xhtml+xml,*/*' },
@@ -87,9 +95,12 @@ export class GatewayService {
     const html = await res.text();
     const configJson = JSON.stringify(app.config ?? {});
     const inject = `<script>window.__ROUTER_APP_CONFIG__=${configJson};</script>`;
+
+    let htmlStr = `${inject}${html}`;
     if (html.includes('</head>')) {
-      return html.replace('</head>', `${inject}</head>`);
+      htmlStr = html.replace('</head>', `${inject}</head>`);
     }
-    return `${inject}${html}`;
+    app.html = htmlStr;
+    return htmlStr;
   }
 }
