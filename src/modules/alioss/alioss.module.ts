@@ -2,11 +2,13 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OSS = require('ali-oss');
 import { ALI_OSS_CLIENT } from './alioss.constants';
+import { RoutersController } from './routers.controller';
+import { RoutersService } from './routers.service';
 
 /** 全局注册 OSS client，其它模块可直接 @Inject(ALI_OSS_CLIENT) */
 @Global()
 @Module({
-  controllers: [],
+  controllers: [RoutersController],
   providers: [
     {
       provide: ALI_OSS_CLIENT,
@@ -19,7 +21,8 @@ import { ALI_OSS_CLIENT } from './alioss.constants';
           bucket: config.get<string>('ALIOSS_BUCKET'),
         }),
     },
+    RoutersService,
   ],
-  exports: [ALI_OSS_CLIENT],
+  exports: [ALI_OSS_CLIENT, RoutersService],
 })
 export class AliOssModule {}
