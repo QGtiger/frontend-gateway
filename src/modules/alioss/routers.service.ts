@@ -10,7 +10,6 @@ import { ALI_OSS_CLIENT } from './alioss.constants';
 import {
   DEFAULT_ROUTERS_DOC_VERSION,
   DEFAULT_ROUTERS_OBJECT_KEY,
-  ENV_ROUTERS_OBJECT_KEY,
 } from './routers.constants';
 import type {
   CreateAppDto,
@@ -46,7 +45,7 @@ export class RoutersService {
     private readonly config: ConfigService,
   ) {
     this.objectKey =
-      this.config.get<string>(ENV_ROUTERS_OBJECT_KEY) ??
+      this.config.get<string>('ALIOSS_ROUTERS_OBJECT_KEY') ??
       DEFAULT_ROUTERS_OBJECT_KEY;
     // ROUTERS_DOCUMENT_CACHE_TTL_MS：毫秒，默认 30s；0=不按时间过期（仅写 OSS 后刷新）
     const defaultTtlMs = 30_000;
@@ -90,6 +89,7 @@ export class RoutersService {
         ? result.content.toString('utf8')
         : String(result.content);
       const parsed = JSON.parse(text) as unknown;
+      console.log('parsed from oss:', parsed);
       const doc = parseRoutersDocument(parsed);
       this.setCachedDoc(doc);
       return doc;
