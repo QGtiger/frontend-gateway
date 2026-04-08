@@ -1,4 +1,9 @@
-import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NestMiddleware,
+  NotFoundException,
+} from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import { GatewayService } from './gateway.service';
 
@@ -23,14 +28,14 @@ export class GatewayMiddleware implements NestMiddleware {
     try {
       const app = await this.gatewayService.resolveApp(host, pathname);
       if (!app) {
-        return next();
+        throw new NotFoundException('App not found');
       }
       const html = await this.gatewayService.buildHtmlResponse(app);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.send(html);
     } catch (e) {
       this.logger.error('Gateway HTML 失败', e);
-      return next(e);
+      throw e;
     }
   }
 }
