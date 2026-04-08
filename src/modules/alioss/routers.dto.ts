@@ -62,7 +62,7 @@ export class RouterAppEntryDto {
   publishList: RouterPublishRecordDto[];
 }
 
-/** PUT /routers 整份替换 */
+/** POST /routers/document/replace 整份替换 */
 export class RoutersDocumentDto {
   @IsString()
   @IsNotEmpty()
@@ -74,8 +74,15 @@ export class RoutersDocumentDto {
   apps: RouterAppEntryDto[];
 }
 
+/** POST /routers/app/get — body: { id } */
+export class GetAppDto {
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+}
+
 /**
- * POST /routers/apps — 无此 id 则新建，有则按发布追加版本
+ * POST /routers/app/deploy — 无此 id 则新建，有则按发布追加版本（id 在 body）
  */
 export class DeployAppDto {
   @IsString()
@@ -149,7 +156,7 @@ export class CreateAppDto {
   publishList?: RouterPublishRecordDto[];
 }
 
-/** PATCH /routers/apps/:id */
+/** 局部更新字段（不含 id） */
 export class PatchAppDto {
   @IsOptional()
   @IsString()
@@ -168,7 +175,32 @@ export class PatchAppDto {
   config?: Record<string, unknown>;
 }
 
-/** POST /routers/apps/:id/publish */
+/** POST /routers/app/update — id 与可改字段均在 body */
+export class UpdateAppDto extends PatchAppDto {
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+}
+
+/** POST /routers/app/remove */
+export class RemoveAppDto {
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+}
+
+/** POST /routers/app/rollback */
+export class RollbackDto {
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  version: number;
+}
+
+/** 单次发布载荷（deploy 等流程内部使用） */
 export class PublishDto {
   @Type(() => Number)
   @IsNumber()
@@ -183,9 +215,3 @@ export class PublishDto {
   note?: string;
 }
 
-/** POST /routers/apps/:id/rollback */
-export class RollbackDto {
-  @Type(() => Number)
-  @IsNumber()
-  version: number;
-}

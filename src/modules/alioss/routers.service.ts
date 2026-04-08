@@ -252,9 +252,9 @@ export class RoutersService {
     return app;
   }
 
-  async rollback(id: string, body: RollbackDto): Promise<RouterAppEntry> {
+  async rollback(body: RollbackDto): Promise<RouterAppEntry> {
     const doc = await this.getDocument();
-    const app = this.findAppOrThrow(doc, id);
+    const app = this.findAppOrThrow(doc, body.id);
     const hit = app.publishList.find((p) => p.version === body.version);
     if (!hit) {
       throw new NotFoundException(`发布历史中无此版本: ${body.version}`);

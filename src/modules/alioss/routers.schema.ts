@@ -62,17 +62,23 @@ export type RouterAppEntry = z.infer<typeof routerAppEntrySchema>;
 export type RoutersDocument = z.infer<typeof routersDocumentSchema>;
 
 /**
- * 校验 OSS 或内存中的 routers 文档；失败时抛出 BadRequestException（含 zod flatten）
+ * 校验 OSS 或内存中的 routers 文档；失败时抛出 BadRequestException（详情在 message）
  */
 export function parseRoutersDocument(raw: unknown): RoutersDocument {
   try {
     return routersDocumentSchema.parse(raw);
   } catch (e) {
     if (e instanceof ZodError) {
-      throw new BadRequestException({
-        message: 'routers.json 校验失败',
-        errors: e.flatten(),
-      });
+      const flat = e.flatten();
+      const fieldParts = Object.entries(flat.fieldErrors)
+        .filter(([, msgs]) => msgs.length > 0)
+        .map(([path, msgs]) => `${path}: ${msgs.join(', ')}`);
+      const detail = [...flat.formErrors, ...fieldParts].join('；');
+      throw new BadRequestException(
+        detail
+          ? `routers.json 校验失败：${detail}`
+          : `routers.json 校验失败：${e.message}`,
+      );
     }
     throw e;
   }
