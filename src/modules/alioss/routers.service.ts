@@ -1,7 +1,9 @@
 import {
+  BadGatewayException,
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -28,8 +30,24 @@ function isOssNotFound(err: unknown): boolean {
   return e?.status === 404 || e?.code === 'NoSuchKey';
 }
 
+/**
+ * OSS 对象内容若像 Express/Nest 的 404 JSON，说明请求未拿到真实对象（代理指错、桶/Key 不对或对象被误写成错误页）。
+ */
+function looksLikeHttpErrorJsonBody(v: unknown): v is { message?: string } {
+  if (!v || typeof v !== 'object') {
+    return false;
+  }
+  const o = v as Record<string, unknown>;
+  return (
+    o.success === false &&
+    typeof o.message === 'string' &&
+    /cannot get\b/i.test(o.message)
+  );
+}
+
 @Injectable()
 export class RoutersService {
+  private readonly logger = new Logger(RoutersService.name);
   private readonly objectKey: string;
   /** 0 表示不按时间过期，仅 persist 后刷新 */
   private readonly cacheTtlMs: number;
@@ -84,12 +102,37 @@ export class RoutersService {
     }
     // 未命中或已过期：重新拉 OSS（或 404 空文档），再写入缓存
     try {
+      const ossInst = this.oss as unknown as {
+        options?: Record<string, unknown>;
+      };
+      const opts = ossInst.options;
+      const fmt = (v: unknown): string =>
+        typeof v === 'string' ? v : v == null ? '(未配置)' : JSON.stringify(v);
+      const bucketStr = fmt(opts?.bucket);
+      const regionStr = fmt(opts?.region);
+      const endpointSuffix =
+        typeof opts?.endpoint === 'string' ? ` endpoint=${opts.endpoint}` : '';
+      this.logger.log(
+        `[routers OSS] 准备拉取对象 objectKey=${JSON.stringify(
+          this.objectKey,
+        )} bucket=${bucketStr} region=${regionStr}${endpointSuffix}`,
+      );
       const result = await this.oss.get(this.objectKey);
+      const status = (result as { res?: { status?: number } }).res?.status;
+      this.logger.log(
+        `[routers OSS] oss.get 已完成，HTTP status=${
+          status ?? 'n/a'
+        }（有状态码说明本次已与 OSS 端完成一次请求；若正文异常再查代理/Key/桶）`,
+      );
       const text = Buffer.isBuffer(result.content)
         ? result.content.toString('utf8')
         : String(result.content);
       const parsed = JSON.parse(text) as unknown;
-      console.log('parsed from oss:', parsed);
+      if (looksLikeHttpErrorJsonBody(parsed)) {
+        throw new BadGatewayException(
+          `OSS 对象「${this.objectKey}」正文像 HTTP 404 错误 JSON（${parsed.message}），不是 routers 配置。请对照本地核对服务端 ALIOSS_REGION、ALIOSS_BUCKET、ALIOSS_ACCESS_KEY_*、ALIOSS_ROUTERS_OBJECT_KEY；并确认访问 OSS API 未被网关/代理指到本应用或其它 Web 服务。`,
+        );
+      }
       const doc = parseRoutersDocument(parsed);
       this.setCachedDoc(doc);
       return doc;
