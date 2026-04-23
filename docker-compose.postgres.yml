@@ -1,0 +1,34 @@
+version: "3.8"
+
+# 单独部署 PostgreSQL：docker compose -f docker-compose.postgres.yml up -d
+# 连接串（宿主机）：postgres://postgres:123456@localhost:5432/lf_test
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-lf
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+      POSTGRES_DB: ${POSTGRES_DB:-lf_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgres_data:
+
+networks:
+  shared-network:
+    external: true
+    name: shared-network

@@ -93,7 +93,11 @@ export class GatewayService {
       throw new BadGatewayException(`上游 HTML 返回 ${res.status}`);
     }
     const html = await res.text();
-    const configJson = JSON.stringify(app.config ?? {});
+    const configJson = JSON.stringify({
+      ...app.config,
+      version: app.currentVersion,
+      appName: app.id,
+    });
     const inject = `<script>window.__ROUTER_APP_CONFIG__=${configJson};</script>`;
 
     let htmlStr = `${inject}${html}`;
