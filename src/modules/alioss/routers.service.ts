@@ -151,6 +151,7 @@ export class RoutersService {
   }
 
   private async persistToOss(doc: RoutersDocument): Promise<void> {
+    this.logger.log('开始同步: ', this.objectKey, JSON.stringify(doc, null, 2));
     await this.oss.put(
       this.objectKey,
       Buffer.from(JSON.stringify(doc, null, 2), 'utf8'),
@@ -158,6 +159,7 @@ export class RoutersService {
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
       },
     );
+    this.logger.log('oss router.json 同步成功');
     // 与 OSS 对齐的那份作为新缓存，并刷新 TTL 起点
     this.setCachedDoc(doc);
   }
