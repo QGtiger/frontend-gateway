@@ -160,6 +160,8 @@ export class RoutersService {
       },
     );
     this.logger.log('oss router.json 同步成功');
+    await fetch('http://backend-gateway:3001/refresh-config');
+    this.logger.log('backend-gateway 刷新配置成功');
     // 与 OSS 对齐的那份作为新缓存，并刷新 TTL 起点
     this.setCachedDoc(doc);
   }
