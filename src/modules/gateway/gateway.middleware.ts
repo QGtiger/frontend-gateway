@@ -32,8 +32,15 @@ export class GatewayMiddleware implements NestMiddleware {
       }
       const html = await this.gatewayService.buildHtmlResponse(app);
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+      // 从 app.headers 中读取自定义响应头（如 COEP/COOP 等）
+      const customHeaders = app.headers;
+      if (customHeaders) {
+        for (const [key, value] of Object.entries(customHeaders)) {
+          if (value) {
+            res.setHeader(key, value);
+          }
+        }
+      }
       res.send(html);
     } catch (e) {
       this.logger.error('Gateway HTML 失败', e);

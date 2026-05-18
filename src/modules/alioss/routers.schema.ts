@@ -20,6 +20,7 @@ export const routerAppEntrySchema = z.object({
   enable: z.boolean().default(true),
   /** 业务自定义配置，任意键值对象 */
   config: z.record(z.string(), z.unknown()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   currentVersion: z.coerce.number().finite(),
   ossIndexUrl: z.string().min(1),
   publishList: z.array(routerPublishRecordSchema).default([]),
